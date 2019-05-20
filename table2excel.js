@@ -144,7 +144,7 @@ function downloadExcel(title, columnsData, tableData) {
         const opts = tableToexcel.convertHeader(columnsData)
         const filterKeys = tableToexcel.convertKeys(columnsData)
         const data = tableToexcel.filterByKeys(filterKeys, tableData)
-        const exportJsonToExcel = require('../../lib/excel/Export2Excel').export_json_to_excel
+        const exportJsonToExcel = require('./Export2Excel').export_json_to_excel
         exportJsonToExcel(opts.header, data, title, opts)
         tableToexcel.downloadLoading = false
     })
