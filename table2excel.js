@@ -1,58 +1,121 @@
 /**
- * iview table export to excel, so far only support 1 level children header
+ * iview table export to excel
  * export column with exportable is true
  * ref https://github.com/han6054/export-excel
  */
 const tableToexcel = {
     downloadLoading: false,
-    formatJson(filterVal, jsonData) {
-        return jsonData.map(item => filterVal.map(j => { return { v: item[j.v] } }))
-    },
-    cutHeader(target) {
-        let opts = {header: [[]], merges: []}
-        let hasChildren = 0
-        let childrenLengthArr = []
-        let skipCount = 0
-        let maxIndex = -1
-        target.forEach((item, index) => {
+    convertHeaderArr(subHeaders = [], rowCount = 0, columnCount = 0) {
+        let headerArr = []
+        subHeaders.forEach(item => {
             if (!item['exportable']) {
-                skipCount++
                 return
             }
-            maxIndex++
-            maxIndex -= skipCount
-            opts.header[0].push({v: item['title']})
-            if (item.children) {
-                hasChildren++
-                childrenLengthArr[hasChildren] = item.children.filter(child => child['exportable']).length
-                if (childrenLengthArr[hasChildren - 1]) {
-                    maxIndex += childrenLengthArr[hasChildren - 1] - 1
+            if (!item.children) {
+                if (!headerArr[rowCount]) {
+                    headerArr[rowCount] = []
                 }
-                opts.merges.push({s: {c: maxIndex, r: 0}, e: {c: maxIndex + childrenLengthArr[hasChildren] - 1, r: 0}})
-                if (!opts.header[1] || opts.header[1].length < 1) {
-                    opts.header[1] = []
-                }
-                if (hasChildren < 2) {
-                    for (let i = 0; i < index; i++) {
-                        opts.merges.push({s: {c: i, r: 0}, e: {c: i, r: hasChildren}})
-                        opts.header[1].push({v: ''})
-                    }
-                }
-                item.children.forEach((child, i) => {
-                    if (child['exportable'] && child['title']) {
-                        opts.header[1].push({v: child['title']})
-                        if (opts.header[1].length > opts.header[0].length) {
-                            opts.header[0].push({v: ''})
+                headerArr[rowCount][columnCount] = item
+                columnCount++
+            } else {
+                let row = rowCount
+                let column = columnCount
+                let subHeaderArr = this.convertHeaderArr(item.children, rowCount + 1, columnCount)
+                subHeaderArr.forEach((item, index) => {
+                    item.forEach((subItem, subIndex) => {
+                        if (!headerArr[index]) {
+                            headerArr[index] = []
                         }
-                    }
+                        headerArr[index][subIndex] = subItem
+                        columnCount++
+                    })
                 })
-            } else if (hasChildren > 0) {
-                opts.merges.push({s: {c: maxIndex + childrenLengthArr[hasChildren] - 1, r: 0}, e: {c: maxIndex + childrenLengthArr[hasChildren] - 1, r: 1}})
+                if (!headerArr[row]) {
+                    headerArr[row] = []
+                }
+                headerArr[row][column] = {
+                    merges: {s: {c: column, r: row }, e: {c: columnCount - 1, r: rowCount }},
+                    ...item
+                }
             }
         })
-        return opts
+        return headerArr
     },
-    cutValue(target) {
+    checkAndPushMerge(mergeArr = [], columnIndex = 0, startRow = 0, endRow = 0) {
+        let filterMerge = mergeArr.filter(item => {
+            let minColumn = Math.min(item.s.c, item.e.c)
+            let minRow = Math.min(item.s.r, item.e.r)
+            let maxColumn = Math.max(item.s.c, item.e.c)
+            let maxRow = Math.max(item.s.r, item.e.r)
+            if (columnIndex >= minColumn && columnIndex <= maxColumn) {
+                if (startRow <= maxRow || endRow >= minRow) {
+                    return true
+                }
+            }
+            return false
+        })
+        if (filterMerge.length < 1) {
+            mergeArr.push({s: {c: columnIndex, r: startRow }, e: {c: columnIndex, r: endRow }})
+        }
+        return mergeArr
+    },
+    calcMergeArr(titleArr = [], mergeArr = [], maxRow, maxColumn) {
+        for (let columnIndex = 0; columnIndex < maxColumn; columnIndex++) {
+            let startRow = 0
+            let endRow = 0
+            for (let rowIndex = 0; rowIndex < maxRow; rowIndex++) {
+                if (titleArr[rowIndex] && (!titleArr[rowIndex][columnIndex] || titleArr[rowIndex][columnIndex].isEmpty)) {
+                    if (startRow === endRow) {
+                        startRow = rowIndex - 1
+                    }
+                    startRow = Math.min(rowIndex - 1, startRow)
+                    endRow = rowIndex
+                } else {
+                    if (startRow !== endRow) {
+                        mergeArr = this.checkAndPushMerge(mergeArr, columnIndex, startRow, endRow)
+                    }
+                    startRow = 0
+                    endRow = 0
+                }
+            }
+            if (startRow !== endRow) {
+                mergeArr = this.checkAndPushMerge(mergeArr, columnIndex, startRow, endRow)
+            }
+        }
+        return {header: titleArr, merges: mergeArr}
+    },
+    convertHeader(target) {
+        let headerArr = this.convertHeaderArr(target)
+        let titleArr = []
+        let mergeArr = []
+        let maxRow = 0
+        let maxColumn = 0
+        for (let index = 0; index < headerArr.length; index++) {
+            let item = headerArr[index]
+            if (!titleArr[index]) {
+                titleArr[index] = []
+            }
+            if (!item) {
+                continue
+            }
+            maxRow++
+            maxColumn = Math.max(maxColumn, item.length)
+            for (let subIndex = 0; subIndex < maxColumn; subIndex++) {
+                if (!titleArr[index][subIndex]) {
+                    titleArr[index][subIndex] = {v: '', isEmpty: true}
+                }
+                let child = item[subIndex]
+                if (child) {
+                    titleArr[index][subIndex] = {v: child['title']}
+                    if (child.merges) {
+                        mergeArr.push(child.merges)
+                    }
+                }
+            }
+        }
+        return this.calcMergeArr(titleArr, mergeArr, maxRow, maxColumn)
+    },
+    convertKeys(target) {
         let arr = []
         target.forEach((item) => {
             if (!item['exportable']) {
@@ -69,16 +132,19 @@ const tableToexcel = {
             }
         })
         return arr
+    },
+    filterByKeys(filterKeys, jsonData) {
+        return jsonData.map(item => filterKeys.map(j => { return { v: item[j.v] } }))
     }
 }
 
 function downloadExcel(title, columnsData, tableData) {
     tableToexcel.downloadLoading = true
     require.ensure([], () => {
-        const opts = tableToexcel.cutHeader(columnsData)
-        const filterVal = tableToexcel.cutValue(columnsData)
-        const data = tableToexcel.formatJson(filterVal, tableData)
-        const exportJsonToExcel = require('./Export2Excel').export_json_to_excel
+        const opts = tableToexcel.convertHeader(columnsData)
+        const filterKeys = tableToexcel.convertKeys(columnsData)
+        const data = tableToexcel.filterByKeys(filterKeys, tableData)
+        const exportJsonToExcel = require('../../lib/excel/Export2Excel').export_json_to_excel
         exportJsonToExcel(opts.header, data, title, opts)
         tableToexcel.downloadLoading = false
     })
