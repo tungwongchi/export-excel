@@ -1,3 +1,5 @@
+在原项目[https://github.com/han6054/export-excel]上增加子表头导出支持, 并支持自动合并单元格
+
 > 引言：
 
 最近使用vue在做一个后台系统，技术栈 `vue + iView`，在页面中生成表格后，
