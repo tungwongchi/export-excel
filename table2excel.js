@@ -21,21 +21,29 @@ const tableToexcel = {
                 let row = rowCount
                 let column = columnCount
                 let subHeaderArr = this.convertHeaderArr(item.children, rowCount + 1, columnCount)
+                let subRowCount = 0
                 subHeaderArr.forEach((item, index) => {
                     item.forEach((subItem, subIndex) => {
                         if (!headerArr[index]) {
                             headerArr[index] = []
                         }
                         headerArr[index][subIndex] = subItem
-                        columnCount++
+                        if (subItem.merge) {
+                            columnCount += subItem.merge.e.c - subItem.merge.s.c + 1
+                        } else {
+                            if (subRowCount < 1) {
+                                columnCount++
+                            }
+                        }
                     })
+                    subRowCount++
                 })
                 if (!headerArr[row]) {
                     headerArr[row] = []
                 }
-                headerArr[row][column] = {
-                    merges: {s: {c: column, r: row }, e: {c: columnCount - 1, r: rowCount }},
-                    ...item
+                headerArr[row][column] = item
+                if (column !== columnCount - 1 || row !== rowCount) {
+                    headerArr[row][column].merge = {s: {c: column, r: row }, e: {c: columnCount - 1, r: rowCount }}
                 }
             }
         })
@@ -48,7 +56,10 @@ const tableToexcel = {
             let maxColumn = Math.max(item.s.c, item.e.c)
             let maxRow = Math.max(item.s.r, item.e.r)
             if (columnIndex >= minColumn && columnIndex <= maxColumn) {
-                if (startRow <= maxRow || endRow >= minRow) {
+                if (startRow <= maxRow && startRow >= minRow) {
+                    return true
+                }
+                if (endRow >= minRow && endRow <= maxRow) {
                     return true
                 }
             }
@@ -107,8 +118,8 @@ const tableToexcel = {
                 let child = item[subIndex]
                 if (child) {
                     titleArr[index][subIndex] = {v: child['title']}
-                    if (child.merges) {
-                        mergeArr.push(child.merges)
+                    if (child.merge) {
+                        mergeArr.push(child.merge)
                     }
                 }
             }
