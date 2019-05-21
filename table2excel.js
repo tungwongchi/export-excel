@@ -128,18 +128,13 @@ const tableToexcel = {
         }
         return this.calcMergeArr(titleArr, mergeArr, maxRow, maxColumn)
     },
-    convertKeys(target) {
-        let arr = []
+    convertKeys(target = [], arr = []) {
         target.forEach((item) => {
             if (!item['exportable']) {
                 return
             }
             if (item.children) {
-                item.children.forEach(child => {
-                    if (child['exportable']) {
-                        arr.push({v: child['key']})
-                    }
-                })
+                arr = this.convertKeys(item.children, arr)
             } else {
                 arr.push({v: item['key']})
             }
