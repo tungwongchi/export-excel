@@ -42,8 +42,10 @@ const tableToexcel = {
                     headerArr[row] = []
                 }
                 headerArr[row][column] = item
-                if (column !== columnCount - 1 || row !== rowCount) {
-                    headerArr[row][column].merge = {s: {c: column, r: row }, e: {c: columnCount - 1, r: rowCount }}
+                if (subHeaderArr && subHeaderArr.length > 0) {
+                    if (column !== columnCount - 1 || row !== rowCount) {
+                        headerArr[row][column].merge = {s: {c: column, r: row}, e: {c: columnCount - 1, r: rowCount}}
+                    }
                 }
             }
         })
@@ -66,7 +68,7 @@ const tableToexcel = {
             return false
         })
         if (filterMerge.length < 1) {
-            mergeArr.push({s: {c: columnIndex, r: startRow }, e: {c: columnIndex, r: endRow }})
+            mergeArr.push({s: {c: columnIndex, r: startRow}, e: {c: columnIndex, r: endRow}})
         }
         return mergeArr
     },
