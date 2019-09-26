@@ -46,9 +46,11 @@ tableData 就不写了，具体数据结构查看[iViewAPI](https://www.iviewui.
 在当前页面中引入依赖
 ```
 import { downloadExcel, downloadExcelSheet } from './table2excel.js'
+import { excel2Json } from './excelUtil.js'
 ```
 
 当我们要导出表格执行`@click`事件调用`handleDownload`函数
+导入文件将Upload组建的:before-upload调用uploadPriceList, action="#"
 ```
 handleDownload() {
     // 单表格文件
@@ -58,4 +60,10 @@ handleDownload() {
         {columnsData: [...], tableData: [...], title: 'SheetName'}
     ]
     downloadExcelSheet(sheets, '文件名')
+}
+uploadPriceList(file) {
+    excel2Json(file, (result) => {
+        // process jsonData, result= {sheetName:[...]}
+        ...
+    })
 }
