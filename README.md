@@ -63,7 +63,7 @@ handleDownload() {
 }
 uploadPriceList(file) {
     excel2Json(file, (result) => {
-        // process jsonData, result= {sheetName:[...]}
+        // process jsonData, result= {sheetName:[{column1: ..., column2:... }, ...]}
         ...
     })
 }
