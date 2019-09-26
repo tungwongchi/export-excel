@@ -122,22 +122,21 @@ function formatJson(jsonData) {
   console.log(jsonData)
 }
 
-export function export_json_to_excel(th, jsonData, defaultTitle) {
-
-  /* original data */
-
-  var data = jsonData;
-  data.unshift(th);
-  var ws_name = "SheetJS";
-
-  var wb = new Workbook(), ws = sheet_from_array_of_arrays(data);
-
-
-  /* add worksheet to workbook */
-  wb.SheetNames.push(ws_name);
-  wb.Sheets[ws_name] = ws;
-
-  var wbout = XLSX.write(wb, {bookType: 'xlsx', bookSST: false, type: 'binary'});
-  var title = defaultTitle || '列表'
-  saveAs(new Blob([s2ab(wbout)], {type: "application/octet-stream"}), title + ".xlsx")
+export function export_json_to_excel(sheets=[], defaultFileName) {
+  let wb = new Workbook()
+  sheets.forEach((sheet, index) => {
+    let data = sheet.data;
+    let th = sheet.opts.header
+    for (let i = th.length; i > 0; i--) {
+      data.unshift(th[i - 1])
+    }
+    sheet.data = data
+    sheet.title = sheet.title || "Sheet-" + index
+    let ws = sheet_from_array_of_arrays(sheet.data, sheet.opts)
+    wb.SheetNames.push(sheet.title)
+    wb.Sheets[sheet.title] = ws
+  })
+  var wbout = XLSX.write(wb, {bookType: 'xlsx', bookSST: false, type: 'binary'})
+  var fileName = defaultFileName || 'export-json' 
+  saveAs(new Blob([s2ab(wbout)], {type: "application/octet-stream"}), fileName + ".xlsx")
 }
