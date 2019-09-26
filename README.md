@@ -45,11 +45,17 @@ tableData 就不写了，具体数据结构查看[iViewAPI](https://www.iviewui.
 ```
 在当前页面中引入依赖
 ```
-import { downloadExcel } from './table2excel.js'
+import { downloadExcel, downloadExcelSheet } from './table2excel.js'
 ```
 
 当我们要导出表格执行`@click`事件调用`handleDownload`函数
 ```
 handleDownload() {
-      downloadExcel('表名', this.columnsData, this.tableData)
+    // 单表格文件
+    downloadExcel('表名', this.columnsData, this.tableData)
+    // 多表格文件
+    let sheets = [
+        {columnsData: [...], tableData: [...], title: 'SheetName'}
+    ]
+    downloadExcelSheet(sheets, '文件名')
 }
