@@ -147,17 +147,26 @@ const tableToexcel = {
 }
 
 function downloadExcel(title, columnsData, tableData) {
-    tableToexcel.downloadLoading = true
-    require.ensure([], () => {
-        const opts = tableToexcel.convertHeader(columnsData)
-        const filterKeys = tableToexcel.convertKeys(columnsData)
-        const data = tableToexcel.filterByKeys(filterKeys, tableData)
-        const exportJsonToExcel = require('./Export2Excel').export_json_to_excel
-        exportJsonToExcel(opts.header, data, title, opts)
-        tableToexcel.downloadLoading = false
-    })
+    downloadExcelSheet([{columnsData: columnsData, tableData: tableData, title: title}], title)
 }
 
+function downloadExcelSheet(sheets = [{columnsData: [], tableData: [], title: String}], defaultFileName = String) {
+     tableToexcel.downloadLoading = true
+     require.ensure([], () => {
+         const exportJsonToExcel = require('../../lib/excel/Export2Excel').export_json_to_excel
+        exportJsonToExcel(sheets.map(sheet => {
+            let filterVal = tableToexcel.cutValue(sheet.columnsData)
+            return {
+                title: sheet.title,
+                opts: tableToexcel.cutHeader(sheet.columnsData),
+                filterVal: filterVal,
+                data: tableToexcel.formatJson(filterVal, sheet.tableData)
+            }
+        }), defaultFileName)
+         tableToexcel.downloadLoading = false
+     })
+}
+ 
 export {
-    downloadExcel
+   downloadExcel, downloadExcelSheet
 }
